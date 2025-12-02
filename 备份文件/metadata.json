@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Flight Deck",
+  "description": "An LLM-driven cockpit auxiliary decision screen. Demonstrates Natural Language UI control with aviation safety constraints.",
+  "requestFramePermissions": []
+}
