@@ -4,4 +4,8 @@ pydantic
 python-dotenv
 langchain
 langchain-openai
+langchain-community
+transformers
+torch
+accelerate
 

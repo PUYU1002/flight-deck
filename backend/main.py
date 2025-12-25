@@ -1,34 +1,16 @@
 import json
-import os
 from typing import List, Literal, Optional
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, validator
 
+# 导入配置和 agent 模块
+from config import init_model
+from agent import call_agent
 
-load_dotenv()
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_KEY_OFFICIAL = os.getenv("OPENAI_API_KEY_OFFICIAL")
-print(OPENAI_API_KEY_OFFICIAL)
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-llm: Optional[ChatOpenAI] = None
-
-if OPENAI_API_KEY:
-    llm = ChatOpenAI(
-        model=OPENAI_MODEL,
-        temperature=0,
-        # api_key=OPENAI_API_KEY,
-        # base_url=OPENAI_BASE_URL,
-        api_key=OPENAI_API_KEY_OFFICIAL,
-        base_url="https://api.openai.com/v1",
-        max_retries=2,
-    )
+# 初始化模型
+llm, USE_LOCAL_MODEL, model_config = init_model()
 
 
 SYSTEM_INSTRUCTION = """
@@ -181,63 +163,24 @@ def _merge_ui_state(current_ui: UIState, updated_config: Optional[UIState]) -> U
     )
 
 
-def _call_agent(command: str, current_ui: UIState) -> AgentResult:
-    if llm is None:
-        raise HTTPException(
-            status_code=500,
-            detail="OPENAI_API_KEY 未配置，无法调用代理。",
-        )
-
-    prompt = (
-        SYSTEM_INSTRUCTION
-        + "\n\nCurrent UI State:\n"
-        + json.dumps(current_ui.dict(), ensure_ascii=False, indent=2)
-        + f'\n\nUser Command: "{command}"\n\n'
-        + "Return only the JSON object described above (no prose, no code fences)."
-    )
-
-    try:
-        print("调用代理输入:", prompt)
-        response = llm.invoke(prompt)
-    except Exception as exc:
-        print("代理调用异常:", repr(exc))
-        raise HTTPException(
-            status_code=502, detail=f"调用 LangChain 代理失败: {exc}"
-        ) from exc
-
-    raw_content = response.content
-    if not isinstance(raw_content, str) or not raw_content.strip():
-        raise HTTPException(status_code=502, detail="代理未返回有效内容。")
-
-    print("代理原始响应:", raw_content)
-
-    try:
-        parsed = json.loads(raw_content)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"解析代理响应失败: {exc}",
-        ) from exc
-
-    try:
-        updated = (
-            UIState(**parsed["updatedConfig"]) if parsed.get("updatedConfig") else None
-        )
-        return AgentResult(
-            success=parsed.get("success", False),
-            message=parsed.get("message"),
-            updatedConfig=updated,
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"代理响应不符合预期结构: {exc}",
-        ) from exc
-
-
 @app.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    model_status = "未配置"
+    if llm is not None:
+        if USE_LOCAL_MODEL:
+            model_status = f"本地模型 (路径: {model_config['local_model_path']})"
+        else:
+            model_status = f"远程模型 ({model_config['openai_model']})"
+
+    return {
+        "status": "ok",
+        "model_configured": llm is not None,
+        "model_type": "local" if USE_LOCAL_MODEL else "remote",
+        "model_status": model_status,
+        "local_model_path": (
+            model_config["local_model_path"] if USE_LOCAL_MODEL else None
+        ),
+    }
 
 
 @app.post("/api/adjust-ui")
@@ -247,7 +190,9 @@ async def adjust_ui(request: Request):
 
     typed_request = AdjustUIRequest(**payload)
 
-    agent_result = _call_agent(typed_request.command, typed_request.current_ui)
+    agent_result = call_agent(
+        llm, typed_request.command, typed_request.current_ui, USE_LOCAL_MODEL
+    )
 
     if not agent_result.success:
         return {

@@ -42,3 +42,4 @@ To implement the full architecture as described in your thesis proposal:
 2.  **Frontend Setup**:
     - Modify `services/geminiService.ts` to use `fetch('http://localhost:8000/api/adjust-ui', ...)` instead of `GoogleGenAI`.
     - Run the React app.
+uvicorn main:app --reload
