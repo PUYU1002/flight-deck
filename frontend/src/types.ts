@@ -5,10 +5,14 @@ export interface FlightData {
   airspeed: number;
   fuel: number;
   phase: 'TAXING' | 'TAKEOFF' | 'CRUISE' | 'LANDING';
+  temperature?: number;
+  pressure?: number;
+  heading?: number;
+  vertical_speed?: number;
 }
 
 export type Zone = 'primary' | 'secondary'; // Primary = Top (Safe), Secondary = Bottom
-export type ComponentId = 'rpm' | 'altitude' | 'airspeed' | 'phase' | 'fuel';
+export type ComponentId = 'rpm' | 'altitude' | 'airspeed' | 'phase' | 'fuel' | 'temperature' | 'pressure' | 'heading' | 'vertical_speed';
 export type VisualizationType = 'text' | 'bar' | 'ring';
 
 export interface UIComponentConfig {

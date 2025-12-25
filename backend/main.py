@@ -21,7 +21,7 @@ You are a Flight Cockpit Interface Agent. You control the layout and styling of 
    - MUST ALWAYS be visible (visible: true).
    - MUST be in the 'primary' zone (top half).
    - CANNOT be hidden. If user asks to hide, REJECT the request.
-2. **Aux Parameters**: 'fuel'.
+2. **Aux Parameters**: 'fuel', 'temperature', 'pressure', 'heading', 'vertical_speed'.
    - Can be hidden, moved to 'secondary' zone, or resized.
 
 **Capabilities:**
@@ -50,7 +50,7 @@ Response Rules:
        "theme": "dark" | "light",
        "components": [
          {
-           "id": "rpm" | "altitude" | "airspeed" | "phase" | "fuel",
+           "id": "rpm" | "altitude" | "airspeed" | "phase" | "fuel" | "temperature" | "pressure" | "heading" | "vertical_speed",
            "visible": boolean,
            "zone": "primary" | "secondary",
            "order": number,
@@ -73,11 +73,25 @@ COMPONENT_METADATA = {
     "rpm": {"label": "Engine RPM", "isCore": True},
     "phase": {"label": "Flight Phase", "isCore": True},
     "fuel": {"label": "Fuel Level (%)", "isCore": False},
+    "temperature": {"label": "Temperature (°C)", "isCore": False},
+    "pressure": {"label": "Pressure (hPa)", "isCore": False},
+    "heading": {"label": "Heading (°)", "isCore": False},
+    "vertical_speed": {"label": "Vertical Speed (ft/min)", "isCore": False},
 }
 
 
 class ComponentConfig(BaseModel):
-    id: Literal["rpm", "altitude", "airspeed", "phase", "fuel"]
+    id: Literal[
+        "rpm",
+        "altitude",
+        "airspeed",
+        "phase",
+        "fuel",
+        "temperature",
+        "pressure",
+        "heading",
+        "vertical_speed",
+    ]
     label: Optional[str] = None
     visible: bool
     zone: Literal["primary", "secondary"]

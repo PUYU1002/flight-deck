@@ -48,18 +48,32 @@ def get_model_config():
         "LOCAL_MODEL_PATH",
         r"C:\Users\25477\.cache\huggingface\hub\models--Qwen--Qwen2.5-1.5B-Instruct",
     )
+    use_official_openai_model = os.getenv(
+        "USE_OFFICIAL_OPENAI_MODEL", "false"
+    ).lower() in {
+        "true",
+        "1",
+        "yes",
+    }
     openai_api_key = os.getenv("OPENAI_API_KEY")
     openai_api_key_official = os.getenv("OPENAI_API_KEY_OFFICIAL")
     openai_base_url = os.getenv("OPENAI_BASE_URL")
+    openai_base_url_official = os.getenv(
+        "OPENAI_BASE_URL_OFFICIAL", "https://api.openai.com/v1"
+    )
     openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    openai_model_official = os.getenv("OPENAI_MODEL_OFFICIAL", "gpt-4o-mini")
 
     return {
         "use_local_model": use_local_model,
         "local_model_path": local_model_path,
+        "use_official_openai_model": use_official_openai_model,
         "openai_api_key": openai_api_key,
         "openai_api_key_official": openai_api_key_official,
         "openai_base_url": openai_base_url,
+        "openai_base_url_official": openai_base_url_official,
         "openai_model": openai_model,
+        "openai_model_official": openai_model_official,
     }
 
 
@@ -164,7 +178,6 @@ def init_remote_model(api_key: str, base_url: str, model: str) -> Optional[Any]:
     """初始化远程 OpenAI 兼容模型"""
     if not api_key:
         return None
-
     print(f"使用远程模型 (代理: {base_url})")
     return ChatOpenAI(
         model=model,
@@ -208,13 +221,20 @@ def init_model() -> tuple[Optional[Any], bool, dict]:
             print("本地模型加载失败，回退到远程模型")
             use_local = False
 
-    # 如果本地模型失败或未启用，使用远程模型
+    # 如果本地模型失败或未启用，使用远程模型，根据是否使用官方OpenAI模型选择不同的API Key和Base URL
     if not use_local:
-        llm = init_remote_model(
-            config["openai_api_key"],
-            config["openai_base_url"],
-            config["openai_model"],
-        )
+        if config["use_official_openai_model"]:
+            llm = init_remote_model(
+                config["openai_api_key_official"],
+                config["openai_base_url_official"],
+                config["openai_model_official"],
+            )
+        else:
+            llm = init_remote_model(
+                config["openai_api_key"],
+                config["openai_base_url"],
+                config["openai_model"],
+            )
 
     # 最终状态总结
     print("=" * 60)

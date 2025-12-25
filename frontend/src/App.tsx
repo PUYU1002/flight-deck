@@ -20,6 +20,10 @@ const App: React.FC = () => {
         altitude: prev.altitude + (Math.random() > 0.5 ? 10 : -10),
         airspeed: prev.airspeed + (Math.random() > 0.5 ? 1 : -1),
         rpm: prev.rpm + (Math.random() > 0.5 ? 50 : -50),
+        temperature: prev.temperature ? prev.temperature + (Math.random() > 0.5 ? 0.5 : -0.5) : -20,
+        pressure: prev.pressure ? prev.pressure + (Math.random() > 0.5 ? 1 : -1) : 1013,
+        heading: prev.heading ? (prev.heading + (Math.random() > 0.5 ? 1 : -1)) % 360 : 180,
+        vertical_speed: prev.vertical_speed ? prev.vertical_speed + (Math.random() > 0.5 ? 50 : -50) : 0,
       }));
     }, 2000);
     return () => clearInterval(interval);
